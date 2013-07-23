@@ -16,12 +16,14 @@ Simply `pip install httreplay` to get going.
 
 The easiest way to get going is to use the context manager:
 
-    import requests
-    from httreplay import replay
+```python
+import requests
+from httreplay import replay
 
-    with replay('/tmp/recording_file.json'):
-        result = requests.get("http://example.com/")
-        # ... issue as many requests as you like ...
+with replay('/tmp/recording_file.json'):
+    result = requests.get("http://example.com/")
+    # ... issue as many requests as you like ...
+```
 
 When a request is issued that is not found in the recording file, `httreplay` will let the request go through the network. Once the response is available, it will automatically be written to the recording file.
 
@@ -29,12 +31,14 @@ When the same request is issued a second time, `httreplay` simply returns the pr
 
 If you can't use the context manager for some reason, you can use the `start_replay` and `stop_replay` methods instead:
 
-    import requests
-    from httreplay import start_replay, stop_replay
+```python
+import requests
+from httreplay import start_replay, stop_replay
 
-    start_replay('/tmp/recording_file.json')
-    result = requests.get("http://example.com/")
-    stop_replay()
+start_replay('/tmp/recording_file.json')
+result = requests.get("http://example.com/")
+stop_replay()
+```
 
 As you've probably noticed, all recordings are to `json` files. They're easy to inspect, modify, and generate!
 
@@ -65,61 +69,64 @@ There are some common things you might want to do in each of these cases; the `h
 
 Your exact needs will probably vary, but hopefully these three methods (and their corresponding key functions) will get you started. Putting it all together, here's an example:
 
-    from httreplay import replay, sort_string_key, filter_query_params_key, filter_headers_key
+```python
+from httreplay import replay, sort_string_key, filter_query_params_key, filter_headers_key
 
-    with replay('/tmp/recording_file.json', url_key=filter_query_params_key(['apiSecret']), body_key=sort_string_key, headers_key=filter_headers_key(['timeStamp', 'nonce'])):
-        result = requests.get("http://example.com/?apiSecret=SUPER_SECRET")
+with replay('/tmp/recording_file.json', url_key=filter_query_params_key(['apiSecret']), body_key=sort_string_key, headers_key=filter_headers_key(['timeStamp', 'nonce'])):
+    result = requests.get("http://example.com/?apiSecret=SUPER_SECRET")
+```
 
 
 ## Using in Django tests
 
 I use `httreplay` extensively in my current app, [Cloak](https://www.getcloak.com/), the website for which is a fairly standard Django app. Here's (roughly) how I've integrated `httreplay` into my tests:
 
-    from django.test import TestCase
-    from django.conf import settings
-    from httreplay import start_replay, stop_replay, filter_headers_key
+```python
+from django.test import TestCase
+from django.conf import settings
+from httreplay import start_replay, stop_replay, filter_headers_key
 
-    class ReplayTestCase(TestCase):
-        def _test_name_for_replay_file(self):
-            """
-            A hack to figure out the current test's name.
+class ReplayTestCase(TestCase):
+    def _test_name_for_replay_file(self):
+        """
+        A hack to figure out the current test's name.
 
-            In this configuration, each *test method* gets its own
-            recording file -- probably what you typically want.
-            """
-            return self.__str__().split(' ')[0]
+        In this configuration, each *test method* gets its own
+        recording file -- probably what you typically want.
+        """
+        return self.__str__().split(' ')[0]
 
-        def _replay_file_name(self):
-            """
-            A hack to determine where the test's recording should
-            be placed.
+    def _replay_file_name(self):
+        """
+        A hack to determine where the test's recording should
+        be placed.
 
-            We typically use a relative directory for HTTREPLAY_RECORDS_BASE_DIRECTORY,
-            but it's entirely up to you.
+        We typically use a relative directory for HTTREPLAY_RECORDS_BASE_DIRECTORY,
+        but it's entirely up to you.
 
-            The final directory path looks like:
+        The final directory path looks like:
 
-                base_directory/test_class_name/test_method_name.json
+            base_directory/test_class_name/test_method_name.json
 
-            Pretty handy!
-            """
-            return os.path.abspath(os.path.join(os.path.dirname(__file__), '{0}/{1}/{2}.json'.format(settings.HTTREPLAY_RECORDINGS_BASE_DIRECTORY,self.__class__.__name__, self._test_name_for_replay_file())))
+        Pretty handy!
+        """
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), '{0}/{1}/{2}.json'.format(settings.HTTREPLAY_RECORDINGS_BASE_DIRECTORY,self.__class__.__name__, self._test_name_for_replay_file())))
 
-        def setUp(self):
-            """Start replay recording."""
-            super(ReplayTestCase, self).setUp()
-            start_replay(
-                replay_file_name=self._replay_file_name(),
-                url_key=self._custom_replay_url_key,
-                body_key=self._custom_replay_body_key,
-                headers_key=filter_headers_key(["Authorization", "User-Agent"]),
-            )
+    def setUp(self):
+        """Start replay recording."""
+        super(ReplayTestCase, self).setUp()
+        start_replay(
+            replay_file_name=self._replay_file_name(),
+            url_key=self._custom_replay_url_key,
+            body_key=self._custom_replay_body_key,
+            headers_key=filter_headers_key(["Authorization", "User-Agent"]),
+        )
 
-        def tearDown(self):
-            """Stop replay recording."""
-            super(ReplayTestCase, self).tearDown()
-            stop_replay()
-
+    def tearDown(self):
+        """Stop replay recording."""
+        super(ReplayTestCase, self).tearDown()
+        stop_replay()
+```
 
 ## Other notes
 
