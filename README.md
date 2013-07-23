@@ -148,7 +148,7 @@ I just noticed that `vcr.py` is a once again alive, but I'm not sure *how* alive
 
 ## Other notes
 
-This is released under the two-clause BSD license.
+This is released under the MIT license.
 
 Pull requests are *most* welcome. Here are some of the many things I'd like to tackle:
 

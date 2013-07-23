@@ -2,12 +2,12 @@ from distutils.core import setup
 
 setup(
     name='httreplay',
-    version='0.1.0',
+    version='0.1.1',
     author='Dave Peck',
     author_email='davepeck+httreplay@gmail.com',
     url='http://github.com/davepeck/httreplay',
     description='A HTTP replay and mocking library for testing.',
-    license='BSD',
+    license='MIT',
     keywords='test unittest http https replay mock mocking',
     long_description="""\
 HTTReplay is a Python HTTP (and HTTPS!) replay/mocking library for testing.
@@ -32,7 +32,7 @@ There's a lot more you can do. Full documentation is available from the `httrepl
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
-        'License :: OSI Approved :: BSD License',
+        'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
