@@ -23,6 +23,7 @@ from httreplay import replay
 with replay('/tmp/recording_file.json'):
     result = requests.get("http://example.com/")
     # ... issue as many requests as you like ...
+    # ... repeat requests won't hit the network ...
 ```
 
 When a request is issued that is not found in the recording file, `httreplay` will let the request go through the network. Once the response is available, it will automatically be written to the recording file.
@@ -119,7 +120,7 @@ class ReplayTestCase(TestCase):
                 os.path.dirname(__file__),
                 settings.HTTREPLAY_RECORDINGS_BASE_DIRECTORY,
                 self.__class__.__name__,
-                self._test_name_for_replay_file()))
+                "{0}.json".format(self._test_name_for_replay_file())))
 
     def setUp(self):
         """Start replay recording."""
