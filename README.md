@@ -4,8 +4,6 @@ A Python HTTP (and HTTPS!) replay/mocking library for testing.
 
 The library supports network requests made via `httplib`, `requests >= 1.2.3`, and `urllib3 >= 0.6`.
 
-This is originally based on `vcr.py`, although it has diverged quite a bit since then. Fundamentally, `vcr.py` didn't meet my needs. It also didn't always behave as advertised, especially when issuing multiple requests through one recording.
-
 
 ## Installation
 
@@ -138,12 +136,27 @@ class ReplayTestCase(TestCase):
         stop_replay()
 ```
 
+
+## Genealogy
+
+In early 2002, I forked [`vcr.py`](https://github.com/kevin1024/vcrpy) into my project-of-the-moment, [Cloak](https://www.getcloak.com/).
+
+I did this because `vcr.py` was partway there, but (1) didn't have all the features I needed, (2) was completely broken where multiple-requests-per-recording was concerned, and (3) didn't seem to be maintained.
+
+I just noticed that `vcr.py` is a once again alive, but I'm not sure *how* alive. In any case, this fork has diverged significantly enough that it's effectively its own library now.
+
+
 ## Other notes
 
-That covers the vast majority of use cases. This is released under the two-clause BSD license. Pull requests are *most* welcome.
+This is released under the two-clause BSD license.
 
-Cheers,
-Dave
+Pull requests are *most* welcome. Here are some of the many things I'd like to tackle:
+
+- proper testing
+- continuous integration
+- Python 3.x support (currently we support Python 2.7 only)
+- clean up the `*_key` parameters, and the generation of request keys in general, so that the signatures are more consistent and there are hooks for _all_ parts of the request
+- provide response header and content filtering hooks, primarily for sensitive information
 
 
 
