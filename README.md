@@ -72,7 +72,11 @@ Your exact needs will probably vary, but hopefully these three methods (and thei
 ```python
 from httreplay import replay, sort_string_key, filter_query_params_key, filter_headers_key
 
-with replay('/tmp/recording_file.json', url_key=filter_query_params_key(['apiSecret']), body_key=sort_string_key, headers_key=filter_headers_key(['timeStamp', 'nonce'])):
+with replay(
+        '/tmp/recording_file.json',
+        url_key=filter_query_params_key(['apiSecret']),
+        body_key=sort_string_key,
+        headers_key=filter_headers_key(['timeStamp', 'nonce'])):
     result = requests.get("http://example.com/?apiSecret=SUPER_SECRET")
 ```
 
@@ -110,7 +114,12 @@ class ReplayTestCase(TestCase):
 
         Pretty handy!
         """
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), '{0}/{1}/{2}.json'.format(settings.HTTREPLAY_RECORDINGS_BASE_DIRECTORY,self.__class__.__name__, self._test_name_for_replay_file())))
+        return os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                settings.HTTREPLAY_RECORDINGS_BASE_DIRECTORY,
+                self.__class__.__name__,
+                self._test_name_for_replay_file()))
 
     def setUp(self):
         """Start replay recording."""
