@@ -122,20 +122,45 @@ class ReplayHTTPResponse(object):
         self.status = self.__replay_current_response['status']['code']
         self.version = None
         self._content = self.__replay_current_response['body'].decode('base64')
+        self.fp = StringIO(self._content)
 
         self.msg = HTTPMessage(StringIO(''))
         for k, v in self.__replay_current_response['headers'].iteritems():
             self.msg.addheader(k, v)
 
-        self.length = self.msg.getheader('content-length') or None
+        self.length = self.msg.getheader('content-length')
+        if self.length is not None:
+            self.length = int(self.length)
 
-    def read(self, chunked=False):
-        # XXX what is chunked
-        return self._content
+    def close(self):
+        self.fp = None
 
     def isclosed(self):
-        # XXX what is this -- urllib3 uses it?
-        return True
+        return self.fp is None
+
+    def read(self, amt=None):
+        """
+        The important parts of HTTPResponse.read()
+        """
+        if self.fp is None:
+            return ''
+
+        if self.length is not None:
+            amt = min(amt, self.length)
+
+        s = self.fp.read(amt)
+        if not s:
+            self.close()
+
+        if self.length is not None:
+            self.length -= len(s)
+            if not self.length:
+                self.close()
+
+        return s
+
+    def getheader(self, name, default=None):
+        return self.msg.getheader(name, default)
 
     def getheaders(self):
-        return self.__replay_current_response['headers'].iteritems()
+        return self.msg.items()
