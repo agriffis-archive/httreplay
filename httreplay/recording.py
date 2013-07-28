@@ -9,35 +9,35 @@ class ReplayRecording(object):
     the network.
     """
     def __init__(self, jsonable=None):
-        super(ReplayRecording, self).__init__()
-        self.requests = []
-        self.responses = []
+        self.request_responses = []
         if jsonable:
             self._from_jsonable(jsonable)
 
     def _from_jsonable(self, jsonable):
-        self.requests = [r['request'] for r in jsonable]
-        self.responses = [r['response'] for r in jsonable]
+        self.request_responses = [
+            (r['request'], r['response']) for r in jsonable ]
 
     def to_jsonable(self):
-        assert len(self.requests) == len(self.responses)
         return [dict(request=request, response=response)
-                for request, response in zip(self.requests, self.responses)]
+                for request, response in self.request_responses]
 
-    def has_request(self, request_signature):
-        return self.get_request(request_signature) is not None
+    def __contains__(self, request):
+        return any(rr[0] == request for rr in self.request_responses)
 
-    def get_request(self, request_signature):
+    def __getitem__(self, request):
         try:
-            return self.requests[self.requests.index(request_signature)]
-        except ValueError:
-            return None
+            return next(rr[1] for rr in self.request_responses if rr[0] == request)
+        except StopIteration:
+            raise KeyError
 
-    def get_response(self, request_signature):
+    def __setitem__(self, request, response):
+        self.request_responses.append((request, response))
+
+    def get(self, request, default=None):
         try:
-            return self.responses[self.requests.index(request_signature)]
-        except ValueError:
-            return None
+            return self[request]
+        except KeyError:
+            return default
 
 
 class ReplayRecordingManager(object):

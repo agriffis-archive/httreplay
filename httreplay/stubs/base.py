@@ -56,7 +56,7 @@ class ReplayConnectionHelper:
             headers_key = headers_copy
 
         # Form the current request
-        self._replay_current_request = dict(
+        self._replay_current_request = request = dict(
             method=method,
             url=url_key,
             body=body_key,
@@ -64,8 +64,7 @@ class ReplayConnectionHelper:
             host=self.host,
             port=self.port)
 
-        if not self._replay_recording.has_request(
-                self._replay_current_request):
+        if request not in self._replay_recording:
             self._baseclass.request(
                 self,
                 method,
@@ -78,8 +77,8 @@ class ReplayConnectionHelper:
         Provide a response from the current recording if possible.
         Otherwise, perform an account network request.
         """
-        replay_response = self._replay_recording.get_response(
-            self._replay_current_request)
+        request = self._replay_current_request
+        replay_response = self._replay_recording.get(request)
         if replay_response is None:
             response = HTTPConnection.getresponse(self)
             status = dict(code=response.status, message=response.reason)
@@ -88,9 +87,7 @@ class ReplayConnectionHelper:
                 status=status,
                 headers=headers,
                 body=response.read().encode('base64'))
-            self._replay_recording.requests.append(
-                self._replay_current_request)
-            self._replay_recording.responses.append(replay_response)
+            self._replay_recording[request] = replay_response
             ReplayRecordingManager.save(
                 self._replay_recording,
                 self._replay_settings.replay_file_name)
