@@ -23,9 +23,6 @@ class ReplayConnectionHelper:
         if self.__replay_recording is None:
             self.__replay_recording = ReplayRecordingManager.load(
                 self._replay_settings.replay_file_name)
-            self._replay_recording_is_new = (self.__replay_recording is None)
-            if self._replay_recording_is_new:
-                self.__replay_recording = ReplayRecording()
         return self.__replay_recording
 
     def request(self, method, url, body=None, headers={}):
