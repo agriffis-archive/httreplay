@@ -48,7 +48,9 @@ class ReplayRecordingManager(object):
     def load(cls, recording_file_name):
         try:
             with open(recording_file_name) as recording_file:
-                recording = ReplayRecording(json.load(recording_file))
+                recording = ReplayRecording(json.load(
+                    recording_file,
+                    cls=RequestResponseDecoder))
         except IOError:
             recording = ReplayRecording()
         return recording
@@ -63,4 +65,38 @@ class ReplayRecordingManager(object):
                 recording.to_jsonable(),
                 recording_file,
                 indent=4,
-                sort_keys=True)
+                sort_keys=True,
+                cls=RequestResponseEncoder)
+
+
+class RequestResponseDecoder(json.JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        kwargs['object_hook'] = self.object_hook
+        super(RequestResponseDecoder, self).__init__(*args, **kwargs)
+
+    @staticmethod
+    def object_hook(d):
+        if len(d) == 2 and set(d) == set(['__type__', '__data__']):
+            modname = d['__type__'].rsplit('.', 1)[0]
+            cls = __import__(modname)
+            for attr in d['__type__'].split('.')[1:]:
+                cls = getattr(cls, attr)
+            d = cls(d['__data__'])
+        return d
+
+
+class RequestResponseEncoder(json.JSONEncoder):
+    def default(self, obj):
+        try:
+            from requests.structures import CaseInsensitiveDict
+        except ImportError:
+            pass
+        else:
+            if isinstance(obj, CaseInsensitiveDict):
+                return {
+                    '__type__': 'requests.structures.CaseInsensitiveDict',
+                    '__data__': obj._store,
+                    }
+
+        # Let the base class default method raise the TypeError
+        return json.JSONEncoder.default(self, obj)
