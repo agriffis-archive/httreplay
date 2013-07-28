@@ -73,7 +73,7 @@ class ReplayConnectionHelper:
         request = self._replay_current_request
         replay_response = self._replay_recording.get(request)
         if replay_response is None:
-            response = HTTPConnection.getresponse(self)
+            response = self._baseclass.getresponse(self)
             status = dict(code=response.status, message=response.reason)
             headers = dict(response.getheaders())
             replay_response = dict(
