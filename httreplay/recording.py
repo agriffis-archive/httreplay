@@ -50,8 +50,6 @@ class ReplayRecordingManager(object):
             with open(recording_file_name) as recording_file:
                 recording = ReplayRecording(json.load(recording_file))
         except IOError:
-            recording = None
-        if recording is None:
             recording = ReplayRecording()
         return recording
 
