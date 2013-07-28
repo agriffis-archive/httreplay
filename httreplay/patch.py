@@ -54,7 +54,7 @@ def _patch_requests(settings):
         requests.packages.urllib3.connectionpool.HTTPConnection.\
             _replay_settings = settings
     except ImportError, e:
-        print repr(e)
+        pass
 
 
 def _patch_urllib3(settings):
@@ -68,7 +68,7 @@ def _patch_urllib3(settings):
         urllib3.connectionpool.HTTPConnection = ReplayHTTPConnection
         urllib3.connectionpool.HTTPConnection._replay_settings = settings
     except ImportError, e:
-        print repr(e)
+        pass
 
 
 def start_replay(
