@@ -1,5 +1,4 @@
 from __future__ import print_function
-import copy
 from httplib import HTTPConnection, HTTPSConnection, HTTPMessage
 from cStringIO import StringIO
 from ..recording import ReplayRecording, ReplayRecordingManager
@@ -33,27 +32,24 @@ class ReplayConnectionHelper:
         """Process a request, and generate a 'key' for future lookups."""
         # If a key generator for the body is provided, use it.
         # Otherwise, simply use the body itself as the body key.
-        has_body = (body is not None)
-        if (has_body and self._replay_settings.body_key):
+        if body is not None and self._replay_settings.body_key:
             body_key = self._replay_settings.body_key(body)
         else:
             body_key = body
 
         # If a key generator for the URL is provided, use it.
         # Otherwise, simply use the URL itself as the URL key.
-        has_url = (url is not None)
-        if (has_url and self._replay_settings.url_key):
+        if url is not None and self._replay_settings.url_key:
             url_key = self._replay_settings.url_key(url)
         else:
             url_key = url
 
         # If a key generator for the headers is provided, use it.
         # Otherwise, simply use the headers directly.
-        headers_copy = copy.copy(dict(headers))
-        if (headers_copy and self._replay_settings.headers_key):
-            headers_key = self._replay_settings.headers_key(headers_copy)
+        if self._replay_settings.headers_key:
+            headers_key = self._replay_settings.headers_key(dict(headers))
         else:
-            headers_key = headers_copy
+            headers_key = headers
 
         # Form the current request
         self._replay_current_request = request = dict(
