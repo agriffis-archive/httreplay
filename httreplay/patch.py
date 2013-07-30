@@ -71,11 +71,7 @@ def _patch_urllib3(settings):
         pass
 
 
-def start_replay(
-        replay_file_name,
-        url_key=None,
-        body_key=None,
-        headers_key=None):
+def start_replay(replay_file_name, **kwargs):
     """
     Start using the ``httreplay`` library.
 
@@ -102,11 +98,7 @@ def start_replay(
         dictionary of headers.
     :type headers_key: function
     """
-    settings = ReplaySettings(
-        replay_file_name=replay_file_name,
-        url_key=url_key,
-        body_key=body_key,
-        headers_key=headers_key)
+    settings = ReplaySettings(replay_file_name, **kwargs)
     _patch_httplib(settings)
     _patch_requests(settings)
     _patch_urllib3(settings)

@@ -1,7 +1,7 @@
 class ReplaySettings(object):
     """Captures settings for the current replay session."""
     def __init__(self, replay_file_name, url_key=None, body_key=None,
-                 headers_key=None):
+                 headers_key=None, allow_network=True):
         """
         Configure the ``httreplay`` library.
 
@@ -23,8 +23,12 @@ class ReplaySettings(object):
         :param headers_key: Function that generates a stable key from a
             dictionary of headers.
         :type headers_key: function
+        :param allow_network: Whether to allow outbound network calls in
+            the absence of saved data. Defaults to True.
+        :type allow_network: boolean
         """
         self.replay_file_name = replay_file_name
         self.url_key = url_key
         self.body_key = body_key
         self.headers_key = headers_key
+        self.allow_network = allow_network

@@ -128,7 +128,7 @@ class ReplayConnectionHelper:
             # is the easiest way.
             self.close()
 
-        else:
+        elif self._replay_settings.allow_network:
             logger.debug("ReplayConnectionHelper calling %s.getresponse()",
                 self._baseclass.__name__)
 
@@ -138,6 +138,14 @@ class ReplayConnectionHelper:
             ReplayRecordingManager.save(
                 self.__recording,
                 self._replay_settings.replay_file_name)
+
+        else:
+            logger.debug("ReplayConnectionHelper 418 (allow_network=False)")
+
+            replay_response = dict(
+                status=dict(code=418, message="I'm a teapot"),
+                headers={},
+                body_quoted_printable='Blocked by allow_network=3DFalse')
 
         return ReplayHTTPResponse(replay_response)
 
