@@ -1,5 +1,9 @@
 import os
 import json
+import logging
+
+
+logger = logging.getLogger(__name__)
 
 
 class ReplayRecording(object):
@@ -52,11 +56,18 @@ class ReplayRecordingManager(object):
                     recording_file,
                     cls=RequestResponseDecoder))
         except IOError:
+            logger.debug("ReplayRecordingManager starting new %r",
+                os.path.basename(recording_file_name))
             recording = ReplayRecording()
+        else:
+            logger.debug("ReplayRecordingManager loaded from %r",
+                os.path.basename(recording_file_name))
         return recording
 
     @classmethod
     def save(cls, recording, recording_file_name):
+        logger.debug("ReplayRecordingManager saving to %r",
+            os.path.basename(recording_file_name))
         dirname, _ = os.path.split(recording_file_name)
         if not os.path.exists(dirname):
             os.makedirs(dirname)
