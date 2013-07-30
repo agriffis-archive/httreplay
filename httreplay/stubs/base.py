@@ -1,7 +1,11 @@
-from __future__ import print_function
 from httplib import HTTPConnection, HTTPSConnection, HTTPMessage
 from cStringIO import StringIO
+import logging
+
 from ..recording import ReplayRecording, ReplayRecordingManager
+
+
+logger = logging.getLogger(__name__)
 
 
 class ReplayError(Exception):
@@ -15,75 +19,124 @@ class ReplayConnectionHelper:
     requests and responses into a recording.
     """
     def __init__(self):
-        self.__replay_recording = None
+        self.__fake_send = False
+        self.__recording_data = None
 
     @property
-    def _replay_recording(self):
+    def __recording(self):
         """Provide the current recording, or create a new one if needed."""
-        if self.__replay_recording is None:
-            self.__replay_recording = ReplayRecordingManager.load(
-                self._replay_settings.replay_file_name)
-        return self.__replay_recording
+        recording = self.__recording_data
+        if not recording:
+            recording = self.__recording_data = \
+                ReplayRecordingManager.load(
+                    self._replay_settings.replay_file_name)
+        return recording
 
-    def request(self, method, url, body=None, headers={}):
-        """Process a request, and generate a 'key' for future lookups."""
-        # If a key generator for the body is provided, use it.
-        # Otherwise, simply use the body itself as the body key.
-        if body is not None and self._replay_settings.body_key:
-            body_key = self._replay_settings.body_key(body)
-        else:
-            body_key = body
+    # All httplib requests use the sequence putrequest(), putheader(),
+    # then endheaders() -> _send_output() -> send()
 
+    def putrequest(self, method, url, **kwargs):
+        # Store an incomplete request; this will be completed when
+        # endheaders() is called.
+        self.__request = dict(
+            method=method,
+            _url=url,
+            _headers={},
+            )
+        return self._baseclass.putrequest(self, method, url, **kwargs)
+
+    def putheader(self, header, *values):
+        # Always called after putrequest() so the dict is prepped.
+        val = self.__request['_headers'].get(header)
+        # http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
+        val = '' if val is None else val + ','
+        val += '\r\n\t'.join(values)
+        self.__request['_headers'][header] = val
+        return self._baseclass.putheader(self, header, *values)
+
+    def endheaders(self, message_body=None):
         # If a key generator for the URL is provided, use it.
         # Otherwise, simply use the URL itself as the URL key.
-        if url is not None and self._replay_settings.url_key:
+        url = self.__request.pop('_url')
+        if self._replay_settings.url_key:
             url_key = self._replay_settings.url_key(url)
         else:
             url_key = url
 
         # If a key generator for the headers is provided, use it.
         # Otherwise, simply use the headers directly.
+        headers = self.__request.pop('_headers')
         if self._replay_settings.headers_key:
-            headers_key = self._replay_settings.headers_key(dict(headers))
+            headers_key = self._replay_settings.headers_key(headers)
         else:
             headers_key = headers
 
-        # Form the current request
-        self._replay_current_request = request = dict(
-            method=method,
-            url=url_key,
-            body=body_key,
-            headers=headers_key,
-            host=self.host,
-            port=self.port)
+        # message_body can be a file; handle that before generating
+        # body_key
+        if message_body and callable(getattr(message_body, 'read', None)):
+            body_content = message_body.read()
+            message_body = StringIO(body_content)  # for continuity
+        else:
+            body_content = message_body
 
-        if request not in self._replay_recording:
-            self._baseclass.request(
-                self,
-                method,
-                url,
-                body=body,
-                headers=headers)
+        # If a key generator for the body is provided, use it.
+        # Otherwise, simply use the body itself as the body key.
+        if body_content is not None and self._replay_settings.body_key:
+            body_key = self._replay_settings.body_key(body_content)
+        else:
+            body_key = body_content
+
+        self.__request.update(dict(
+            # method already present
+            url=url_key,
+            headers=headers_key,
+            body=body_key,
+            host=self.host,
+            port=self.port,
+            ))
+
+        # endheaders() will eventually call send()
+        logstr = '%(method)s %(host)s:%(port)s/%(url)s' % self.__request
+        if self.__request in self.__recording:
+            logger.debug("ReplayConnectionHelper found %s", logstr)
+            self.__fake_send = True
+        else:
+            logger.debug("ReplayConnectionHelper trying %s", logstr)
+        result = self._baseclass.endheaders(self, message_body)
+        self.__fake_send = False
+        return result
+
+    def send(self, msg):
+        if not self.__fake_send:
+            return self._baseclass.send(self, msg)
 
     def getresponse(self, buffering=False):
         """
         Provide a response from the current recording if possible.
-        Otherwise, perform an account network request.
+        Otherwise, perform the network request.  This function ALWAYS
+        returns ReplayHTTPResponse() regardless so it's consistent between
+        initial recording and later.
         """
-        request = self._replay_current_request
-        replay_response = self._replay_recording.get(request)
-        if replay_response is None:
+        replay_response = self.__recording.get(self.__request)
+
+        if replay_response:
+            # Not calling the underlying getresponse(); do the same cleanup
+            # that it would have done.  However since the cleanup is on
+            # class-specific members (self.__state and self.__response) this
+            # is the easiest way.
+            self.close()
+
+        else:
+            logger.debug("ReplayConnectionHelper calling %s.getresponse()",
+                self._baseclass.__name__)
+
             response = self._baseclass.getresponse(self)
-            status = dict(code=response.status, message=response.reason)
-            headers = dict(response.getheaders())
-            replay_response = dict(
-                status=status,
-                headers=headers,
-                body=response.read().encode('base64'))
-            self._replay_recording[request] = replay_response
+            replay_response = ReplayHTTPResponse.make_replay_response(response)
+            self.__recording[self.__request] = replay_response
             ReplayRecordingManager.save(
-                self._replay_recording,
+                self.__recording,
                 self._replay_settings.replay_file_name)
+
         return ReplayHTTPResponse(replay_response)
 
 
@@ -116,21 +169,42 @@ class ReplayHTTPResponse(object):
     A replay response object, with just enough functionality to make
     the various HTTP/URL libraries out there happy.
     """
+    __text_content_types = (
+        'text/',
+        'application/json',
+        )
+
     def __init__(self, response):
-        self.__replay_current_response = response
-        self.reason = self.__replay_current_response['status']['message']
-        self.status = self.__replay_current_response['status']['code']
+        self.__response = response
+        self.reason = self.__response['status']['message']
+        self.status = self.__response['status']['code']
         self.version = None
-        self._content = self.__replay_current_response['body'].decode('base64')
+        if 'body_quoted_printable' in self.__response:
+            self._content = quopri.decodestring(self.__response['body_quoted_printable'])
+        else:
+            self._content = self.__response['body'].decode('base64')
         self.fp = StringIO(self._content)
 
-        self.msg = HTTPMessage(StringIO(''))
-        for k, v in self.__replay_current_response['headers'].iteritems():
-            self.msg.addheader(k, v)
+        msg_fp = StringIO('\r\n'.join('{}: {}'.format(h, v)
+            for h, v in self.__response['headers'].iteritems()))
+        self.msg = HTTPMessage(msg_fp)
+        self.msg.fp = None  # httplib does this, okay?
 
-        self.length = self.msg.getheader('content-length')
-        if self.length is not None:
-            self.length = int(self.length)
+        length = self.msg.getheader('content-length')
+        self.length = int(length) if length else None
+
+    @classmethod
+    def make_replay_response(cls, response):
+        """
+        Converts real response to replay_response dict which can be saved
+        and/or used to initialize a ReplayHTTPResponse.
+        """
+        replay_response = dict(
+            status=dict(code=response.status, message=response.reason),
+            headers=dict(response.getheaders()),
+            body=response.read().encode('base64'))
+
+        return replay_response
 
     def close(self):
         self.fp = None
