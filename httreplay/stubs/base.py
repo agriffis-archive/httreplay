@@ -1,6 +1,8 @@
 from httplib import HTTPConnection, HTTPSConnection, HTTPMessage
 from cStringIO import StringIO
 import logging
+import quopri
+import zlib
 
 from ..recording import ReplayRecording, ReplayRecordingManager
 
@@ -199,11 +201,24 @@ class ReplayHTTPResponse(object):
         Converts real response to replay_response dict which can be saved
         and/or used to initialize a ReplayHTTPResponse.
         """
-        replay_response = dict(
-            status=dict(code=response.status, message=response.reason),
-            headers=dict(response.getheaders()),
-            body=response.read().encode('base64'))
+        replay_response = {}
+        body = response.read()  # undecoded byte string
 
+        # Add body to replay_response, either as quoted printable for
+        # text responses or base64 for binary responses.
+        if response.getheader('content-type', '') \
+                .startswith(cls.__text_content_types):
+            if response.getheader('content-encoding') in ['gzip', 'deflate']:
+                # http://stackoverflow.com/questions/2695152
+                body = zlib.decompress(body, 16+zlib.MAX_WBITS)
+                del response.msg.dict['content-encoding']
+            replay_response['body_quoted_printable'] = quopri.encodestring(body)
+        else:
+            replay_response['body'] = body.encode('base64')
+
+        replay_response.update(dict(
+            status=dict(code=response.status, message=response.reason),
+            headers=dict(response.getheaders())))
         return replay_response
 
     def close(self):
