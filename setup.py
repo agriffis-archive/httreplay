@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='httreplay',
-    version='0.1.1',
+    version='0.1.3',
     author='Dave Peck',
     author_email='davepeck+httreplay@gmail.com',
     url='http://github.com/davepeck/httreplay',
@@ -30,7 +30,7 @@ There's a lot more you can do. Full documentation is available from the `httrepl
 """,
     packages=["httreplay", "httreplay.stubs"],
     classifiers=[
-        'Development Status :: 4 - Beta',
+        'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
