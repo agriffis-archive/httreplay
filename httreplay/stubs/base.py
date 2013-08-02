@@ -147,7 +147,7 @@ class ReplayConnectionHelper:
                 headers={},
                 body_quoted_printable='Blocked by allow_network=3DFalse')
 
-        return ReplayHTTPResponse(replay_response)
+        return ReplayHTTPResponse(replay_response, method=self.__request['method'])
 
 
 class ReplayHTTPConnection(ReplayConnectionHelper, HTTPConnection):
@@ -184,7 +184,7 @@ class ReplayHTTPResponse(object):
         'application/json',
         )
 
-    def __init__(self, replay_response):
+    def __init__(self, replay_response, method=None):
         self.reason = replay_response['status']['message']
         self.status = replay_response['status']['code']
         self.version = None
@@ -201,6 +201,9 @@ class ReplayHTTPResponse(object):
 
         length = self.msg.getheader('content-length')
         self.length = int(length) if length else None
+
+        # Save method to handle HEAD specially as httplib does
+        self._method = method
 
     @classmethod
     def make_replay_response(cls, response):
@@ -239,6 +242,10 @@ class ReplayHTTPResponse(object):
         The important parts of HTTPResponse.read()
         """
         if self.fp is None:
+            return ''
+
+        if self._method == 'HEAD':
+            self.close()
             return ''
 
         if self.length is not None:
