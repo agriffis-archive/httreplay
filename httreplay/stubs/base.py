@@ -184,19 +184,18 @@ class ReplayHTTPResponse(object):
         'application/json',
         )
 
-    def __init__(self, response):
-        self.__response = response
-        self.reason = self.__response['status']['message']
-        self.status = self.__response['status']['code']
+    def __init__(self, replay_response):
+        self.reason = replay_response['status']['message']
+        self.status = replay_response['status']['code']
         self.version = None
-        if 'body_quoted_printable' in self.__response:
-            self._content = quopri.decodestring(self.__response['body_quoted_printable'])
+        if 'body_quoted_printable' in replay_response:
+            self._content = quopri.decodestring(replay_response['body_quoted_printable'])
         else:
-            self._content = self.__response['body'].decode('base64')
+            self._content = replay_response['body'].decode('base64')
         self.fp = StringIO(self._content)
 
         msg_fp = StringIO('\r\n'.join('{}: {}'.format(h, v)
-            for h, v in self.__response['headers'].iteritems()))
+            for h, v in replay_response['headers'].iteritems()))
         self.msg = HTTPMessage(msg_fp)
         self.msg.fp = None  # httplib does this, okay?
 
