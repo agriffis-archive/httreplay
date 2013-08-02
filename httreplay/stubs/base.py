@@ -245,7 +245,8 @@ class ReplayHTTPResponse(object):
         if self.length is not None:
             amt = min(amt, self.length)
 
-        s = self.fp.read(amt)
+        # StringIO doesn't like read(None)
+        s = self.fp.read() if amt is None else self.fp.read(amt)
         if not s:
             self.close()
 
