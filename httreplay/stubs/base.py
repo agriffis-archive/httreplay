@@ -221,7 +221,10 @@ class ReplayHTTPResponse(object):
             if response.getheader('content-encoding') in ['gzip', 'deflate']:
                 # http://stackoverflow.com/questions/2695152
                 body = zlib.decompress(body, 16+zlib.MAX_WBITS)
-                del response.msg.dict['content-encoding']
+                del response.msg['content-encoding']
+                # decompression changes the length
+                if 'content-length' in response.msg:
+                    response.msg['content-length'] = str(len(body))
             replay_response['body_quoted_printable'] = quopri.encodestring(body)
         else:
             replay_response['body'] = body.encode('base64')
