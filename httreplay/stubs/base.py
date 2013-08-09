@@ -147,7 +147,7 @@ class ReplayConnectionHelper:
                 headers={},
                 body_quoted_printable='Blocked by allow_network=3DFalse')
 
-        return ReplayHTTPResponse(replay_response)
+        return ReplayHTTPResponse(replay_response, method=self.__request['method'])
 
 
 class ReplayHTTPConnection(ReplayConnectionHelper, HTTPConnection):
@@ -184,24 +184,26 @@ class ReplayHTTPResponse(object):
         'application/json',
         )
 
-    def __init__(self, response):
-        self.__response = response
-        self.reason = self.__response['status']['message']
-        self.status = self.__response['status']['code']
+    def __init__(self, replay_response, method=None):
+        self.reason = replay_response['status']['message']
+        self.status = replay_response['status']['code']
         self.version = None
-        if 'body_quoted_printable' in self.__response:
-            self._content = quopri.decodestring(self.__response['body_quoted_printable'])
+        if 'body_quoted_printable' in replay_response:
+            self._content = quopri.decodestring(replay_response['body_quoted_printable'])
         else:
-            self._content = self.__response['body'].decode('base64')
+            self._content = replay_response['body'].decode('base64')
         self.fp = StringIO(self._content)
 
         msg_fp = StringIO('\r\n'.join('{}: {}'.format(h, v)
-            for h, v in self.__response['headers'].iteritems()))
+            for h, v in replay_response['headers'].iteritems()))
         self.msg = HTTPMessage(msg_fp)
         self.msg.fp = None  # httplib does this, okay?
 
         length = self.msg.getheader('content-length')
         self.length = int(length) if length else None
+
+        # Save method to handle HEAD specially as httplib does
+        self._method = method
 
     @classmethod
     def make_replay_response(cls, response):
@@ -219,7 +221,10 @@ class ReplayHTTPResponse(object):
             if response.getheader('content-encoding') in ['gzip', 'deflate']:
                 # http://stackoverflow.com/questions/2695152
                 body = zlib.decompress(body, 16+zlib.MAX_WBITS)
-                del response.msg.dict['content-encoding']
+                del response.msg['content-encoding']
+                # decompression changes the length
+                if 'content-length' in response.msg:
+                    response.msg['content-length'] = str(len(body))
             replay_response['body_quoted_printable'] = quopri.encodestring(body)
         else:
             replay_response['body'] = body.encode('base64')
@@ -242,10 +247,15 @@ class ReplayHTTPResponse(object):
         if self.fp is None:
             return ''
 
+        if self._method == 'HEAD':
+            self.close()
+            return ''
+
         if self.length is not None:
             amt = min(amt, self.length)
 
-        s = self.fp.read(amt)
+        # StringIO doesn't like read(None)
+        s = self.fp.read() if amt is None else self.fp.read(amt)
         if not s:
             self.close()
 
