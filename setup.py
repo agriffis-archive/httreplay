@@ -2,15 +2,15 @@ from distutils.core import setup
 
 setup(
     name='httreplay',
-    version='0.1.3',
-    author='Dave Peck',
+    version='0.1.4',
+    author='Aron Griffis, Dave Peck',
     author_email='davepeck+httreplay@gmail.com',
     url='http://github.com/davepeck/httreplay',
-    description='A HTTP replay and mocking library for testing.',
+    description='A HTTP replay library for testing.',
     license='MIT',
-    keywords='test unittest http https replay mock mocking',
+    keywords='test unittest http https replay testing',
     long_description="""\
-HTTReplay is a Python HTTP (and HTTPS!) replay/mocking library for testing.
+HTTReplay is a Python HTTP (and HTTPS!) replay library for testing.
 
 The library supports the recording and replay of network requests made via ``httplib``, ``requests >= 1.2.3``, and ``urllib3 >= 0.6``.
 

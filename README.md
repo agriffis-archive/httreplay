@@ -1,6 +1,6 @@
 # httreplay
 
-A Python HTTP (and HTTPS!) replay/mocking library for testing.
+A Python HTTP (and HTTPS!) record-and-replay library for testing.
 
 The library supports network requests made via `httplib`, `requests >= 1.2.3`, and `urllib3 >= 0.6`.
 
@@ -44,7 +44,7 @@ As you've probably noticed, all recordings are to `json` files. They're easy to 
 
 ## Slightly more advanced usage
 
-There are two problems that most people who use replay mocking encounter pretty quickly:
+There are two problems that most people who use HTTP recording and replay encounter pretty quickly:
 
 1. HTTP requests can contain sensitive information not suitable for storing in recordings
 2. HTTP requests can contain inconsequential information or can vary in ways that are inconsequential for the purposes of replay
@@ -150,6 +150,11 @@ I just noticed that `vcr.py` is a once again alive, but I'm not sure *how* alive
 
 This is released under the MIT license.
 
+Contributors:
+
+- [Aron Griffis](https://github.com/agriffis/)
+- [Dave Peck](https://github.com/davepeck/)
+
 Pull requests are *most* welcome. Here are some of the many things I'd like to tackle:
 
 - proper testing
@@ -157,6 +162,7 @@ Pull requests are *most* welcome. Here are some of the many things I'd like to t
 - Python 3.x support (currently we support Python 2.7 only)
 - clean up the `*_key` parameters, and the generation of request keys in general, so that the signatures are more consistent and there are hooks for _all_ parts of the request
 - provide response header and content filtering hooks, primarily for sensitive information
+- actual mock-then-assert functionality
 
 
 
