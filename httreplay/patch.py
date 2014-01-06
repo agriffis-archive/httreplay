@@ -11,11 +11,17 @@ _original_http_connection = httplib.HTTPConnection
 _original_https_connection = httplib.HTTPSConnection
 
 try:
+    import requests
     import requests.packages.urllib3.connectionpool
     _original_requests_verified_https_connection = \
         requests.packages.urllib3.connectionpool.VerifiedHTTPSConnection
     _original_requests_http_connection = \
         requests.packages.urllib3.connectionpool.HTTPConnection
+    if requests.__version__.startswith('2'):
+        _original_requests_https_connection_pool_cls = \
+            requests.packages.urllib3.connectionpool.HTTPSConnectionPool.ConnectionCls
+        _original_requests_http_connection_pool_cls = \
+            requests.packages.urllib3.connectionpool.HTTPConnectionPool.ConnectionCls
 except ImportError:
     pass
 
@@ -43,6 +49,7 @@ def _patch_httplib(settings):
 
 def _patch_requests(settings):
     try:
+        import requests
         import requests.packages.urllib3.connectionpool
         from .stubs.requests_stubs import ReplayRequestsHTTPSConnection
         requests.packages.urllib3.connectionpool.VerifiedHTTPSConnection = \
@@ -53,7 +60,16 @@ def _patch_requests(settings):
             ReplayHTTPConnection
         requests.packages.urllib3.connectionpool.HTTPConnection.\
             _replay_settings = settings
-    except ImportError, e:
+        if requests.__version__.startswith('2'):
+            requests.packages.urllib3.connectionpool.HTTPConnectionPool.ConnectionCls = \
+                ReplayHTTPConnection
+            requests.packages.urllib3.connectionpool.HTTPConnectionPool.ConnectionCls.\
+                _replay_settings = settings
+            requests.packages.urllib3.connectionpool.HTTPSConnectionPool.ConnectionCls = \
+                ReplayRequestsHTTPSConnection
+            requests.packages.urllib3.connectionpool.HTTPSConnectionPool.ConnectionCls.\
+                _replay_settings = settings
+    except ImportError:
         pass
 
 
@@ -67,7 +83,7 @@ def _patch_urllib3(settings):
             settings
         urllib3.connectionpool.HTTPConnection = ReplayHTTPConnection
         urllib3.connectionpool.HTTPConnection._replay_settings = settings
-    except ImportError, e:
+    except ImportError:
         pass
 
 
@@ -117,11 +133,17 @@ def _unpatch_httplib():
 
 def _unpatch_requests():
     try:
+        import requests
         import requests.packages.urllib3.connectionpool
         requests.packages.urllib3.connectionpool.VerifiedHTTPSConnection = \
             _original_requests_verified_https_connection
         requests.packages.urllib3.connectionpool.HTTPConnection = \
             _original_requests_http_connection
+        if requests.__version__.startswith('2'):
+            requests.packages.urllib3.connectionpool.HTTPSConnectionPool.ConnectionCls = \
+                _original_requests_https_connection_pool_cls
+            requests.packages.urllib3.connectionpool.HTTPConnectionPool.ConnectionCls = \
+                _original_requests_http_connection_pool_cls
     except ImportError:
         pass
 

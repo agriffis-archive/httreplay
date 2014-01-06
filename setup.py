@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='httreplay',
-    version='0.1.4',
+    version='0.1.5',
     author='Aron Griffis, Dave Peck',
     author_email='davepeck+httreplay@gmail.com',
     url='http://github.com/davepeck/httreplay',
@@ -12,7 +12,7 @@ setup(
     long_description="""\
 HTTReplay is a Python HTTP (and HTTPS!) replay library for testing.
 
-The library supports the recording and replay of network requests made via ``httplib``, ``requests >= 1.2.3``, and ``urllib3 >= 0.6``.
+The library supports the recording and replay of network requests made via ``httplib``, ``requests >= 1.2.3`` (including ``requests 2.x``), and ``urllib3 >= 0.6``.
 
 Here's a very simple example of how to use it:
 

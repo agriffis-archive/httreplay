@@ -2,7 +2,7 @@
 
 A Python HTTP (and HTTPS!) record-and-replay library for testing.
 
-The library supports network requests made via `httplib`, `requests >= 1.2.3`, and `urllib3 >= 0.6`.
+The library supports network requests made via `httplib`, `requests >= 1.2.3` (including `requests 2.x`), and `urllib3 >= 0.6`.
 
 
 ## Installation
