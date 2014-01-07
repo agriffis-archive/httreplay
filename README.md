@@ -88,6 +88,8 @@ I use `httreplay` extensively in my current app, [Cloak](https://www.getcloak.co
 from django.test import TestCase
 from django.conf import settings
 from httreplay import start_replay, stop_replay, filter_headers_key
+import os
+
 
 class ReplayTestCase(TestCase):
     def _test_name_for_replay_file(self):
