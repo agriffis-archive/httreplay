@@ -141,12 +141,11 @@ class ReplayTestCase(TestCase):
 
 ## Genealogy
 
-In early 2002, I forked [`vcr.py`](https://github.com/kevin1024/vcrpy) into my project-of-the-moment, [Cloak](https://www.getcloak.com/).
+In early 2012, I forked [`vcr.py`](https://github.com/kevin1024/vcrpy) into my project-of-the-moment, [Cloak](https://www.getcloak.com/).
 
 I did this because `vcr.py` was partway there, but (1) didn't have all the features I needed, (2) was completely broken where multiple-requests-per-recording was concerned, and (3) didn't seem to be maintained.
 
-I just checked again (in early January, 2014) and it looks like `vcr.py` has risen back from the dead and is very much alive. It looks to have matured quite a bit. That said, I'm not entirely sure what state it is in; I can see, for example, that it is updated to handle `requests 2.x` just like this library does. But it looks like the libraries have diverged enough that `httreplay` is effectively its own library now. They share some very large commonalities, owing to the fact that `httreplay` started its life as `vcr` &mdash; but I'm pretty much stuck with my own library for now and it seems to have some features the other lacks.
-
+I just checked again (in early January, 2014) and it looks like `vcr.py` has risen back from the dead and is very much alive. It looks to have matured quite a bit; for example, it appears to work with `requests 2.x` just like `httreplay`. Unlike `httreplay`, `vcr.py` seems to have good test discipline. (`httreplay` desparately needs this!) That said, the two libraries have diverged enough that `httreplay` is effectively its own thing now. They share quite a bit of DNA, yes, but I am at the moment pretty locked into `httreplay` and its unique features/implementation decisions.
 
 ## Other notes
 
