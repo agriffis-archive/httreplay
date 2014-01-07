@@ -4,7 +4,7 @@ import logging
 import quopri
 import zlib
 
-from ..recording import ReplayRecording, ReplayRecordingManager
+from ..recording import ReplayRecordingManager
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +24,19 @@ class ReplayConnectionHelper:
         self.__fake_send = False
         self.__recording_data = None
 
+    # Some hacks to manage the presence (or not) of the connection's
+    # socket. Requests 2.x likes to set settings on the socket, but
+    # only checks whether the connection hasattr('sock') -- not whether
+    # the sock itself is None (which is actually its default value,
+    # and which httplib likes to see.) Yeesh.
+    def __socket_del(self):
+        if hasattr(self, 'sock') and (self.sock is None):
+            del self.sock
+
+    def __socket_none(self):
+        if not hasattr(self, 'sock'):
+            self.sock = None
+
     @property
     def __recording(self):
         """Provide the current recording, or create a new one if needed."""
@@ -38,16 +51,18 @@ class ReplayConnectionHelper:
     # then endheaders() -> _send_output() -> send()
 
     def putrequest(self, method, url, **kwargs):
+        self.__socket_none()
         # Store an incomplete request; this will be completed when
         # endheaders() is called.
         self.__request = dict(
             method=method,
             _url=url,
             _headers={},
-            )
+        )
         return self._baseclass.putrequest(self, method, url, **kwargs)
 
     def putheader(self, header, *values):
+        self.__socket_none()
         # Always called after putrequest() so the dict is prepped.
         val = self.__request['_headers'].get(header)
         # http://www.w3.org/Protocols/rfc2616/rfc2616-sec4.html#sec4.2
@@ -57,6 +72,7 @@ class ReplayConnectionHelper:
         return self._baseclass.putheader(self, header, *values)
 
     def endheaders(self, message_body=None):
+        self.__socket_del()
         # If a key generator for the URL is provided, use it.
         # Otherwise, simply use the URL itself as the URL key.
         url = self.__request.pop('_url')
@@ -95,7 +111,7 @@ class ReplayConnectionHelper:
             body=body_key,
             host=self.host,
             port=self.port,
-            ))
+        ))
 
         # endheaders() will eventually call send()
         logstr = '%(method)s %(host)s:%(port)s/%(url)s' % self.__request
@@ -110,6 +126,7 @@ class ReplayConnectionHelper:
 
     def send(self, msg):
         if not self.__fake_send:
+            self.__socket_none()
             return self._baseclass.send(self, msg)
 
     def getresponse(self, buffering=False):
@@ -119,6 +136,7 @@ class ReplayConnectionHelper:
         returns ReplayHTTPResponse() regardless so it's consistent between
         initial recording and later.
         """
+        self.__socket_none()
         replay_response = self.__recording.get(self.__request)
 
         if replay_response:
@@ -129,8 +147,7 @@ class ReplayConnectionHelper:
             self.close()
 
         elif self._replay_settings.allow_network:
-            logger.debug("ReplayConnectionHelper calling %s.getresponse()",
-                self._baseclass.__name__)
+            logger.debug("ReplayConnectionHelper calling %s.getresponse()", self._baseclass.__name__)
 
             response = self._baseclass.getresponse(self)
             replay_response = ReplayHTTPResponse.make_replay_response(response)
@@ -148,6 +165,10 @@ class ReplayConnectionHelper:
                 body_quoted_printable='Blocked by allow_network=3DFalse')
 
         return ReplayHTTPResponse(replay_response, method=self.__request['method'])
+
+    def close(self):
+        self.__socket_none()
+        self._baseclass.close(self)
 
 
 class ReplayHTTPConnection(ReplayConnectionHelper, HTTPConnection):
@@ -182,7 +203,7 @@ class ReplayHTTPResponse(object):
     __text_content_types = (
         'text/',
         'application/json',
-        )
+    )
 
     def __init__(self, replay_response, method=None):
         self.reason = replay_response['status']['message']
@@ -220,7 +241,7 @@ class ReplayHTTPResponse(object):
                 .startswith(cls.__text_content_types):
             if response.getheader('content-encoding') in ['gzip', 'deflate']:
                 # http://stackoverflow.com/questions/2695152
-                body = zlib.decompress(body, 16+zlib.MAX_WBITS)
+                body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
                 del response.msg['content-encoding']
                 # decompression changes the length
                 if 'content-length' in response.msg:

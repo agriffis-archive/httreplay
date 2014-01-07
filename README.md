@@ -145,7 +145,7 @@ In early 2002, I forked [`vcr.py`](https://github.com/kevin1024/vcrpy) into my p
 
 I did this because `vcr.py` was partway there, but (1) didn't have all the features I needed, (2) was completely broken where multiple-requests-per-recording was concerned, and (3) didn't seem to be maintained.
 
-I just noticed that `vcr.py` is a once again alive, but I'm not sure *how* alive. In any case, this fork has diverged significantly enough that it's effectively its own library now.
+I just checked again (in early January, 2014) and it looks like `vcr.py` has risen back from the dead and is very much alive. It looks to have matured quite a bit. That said, I'm not entirely sure what state it is in; I can see, for example, that it is updated to handle `requests 2.x` just like this library does. But it looks like the libraries have diverged enough that `httreplay` is effectively its own library now. They share some very large commonalities, owing to the fact that `httreplay` started its life as `vcr` &mdash; but I'm pretty much stuck with my own library for now and it seems to have some features the other lacks.
 
 
 ## Other notes

@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='httreplay',
-    version='0.1.5',
+    version='0.1.6',
     author='Aron Griffis, Dave Peck',
     author_email='davepeck+httreplay@gmail.com',
     url='http://github.com/davepeck/httreplay',
