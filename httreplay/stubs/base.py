@@ -108,10 +108,17 @@ class ReplayConnectionHelper:
             # method already present
             url=url_key,
             headers=headers_key,
-            body=body_key,
             host=self.host,
             port=self.port,
         ))
+
+        # JSON encoder will try to decode bytes as UTF-8.
+        # Do this in advance so we have a chance to handle binary data.
+        if isinstance(body_key, str):
+            try:
+                self.__request['body'] = body_key.decode('utf8')
+            except UnicodeDecodeError:
+                self.__request['body_base64'] = body_key.encode('base64')
 
         # endheaders() will eventually call send()
         logstr = '%(method)s %(host)s:%(port)s/%(url)s' % self.__request
