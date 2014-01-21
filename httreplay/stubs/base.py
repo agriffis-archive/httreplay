@@ -185,14 +185,13 @@ class ReplayHTTPSConnection(ReplayConnectionHelper, HTTPSConnection):
     _baseclass = HTTPSConnection
 
     def __init__(self, *args, **kwargs):
-        # I overrode the init and copied a lot of the code from the parent
-        # class because when this happens, HTTPConnection has been replaced
-        # by ReplayHTTPConnection,  but doing it here lets us use the original
-        # one.
-        HTTPConnection.__init__(self, *args, **kwargs)
-        ReplayConnectionHelper.__init__(self)
+        # httplib.HTTPConnection has been replaced by ReplayHTTPConnection,
+        # so doing it this way rather than calling through
+        # HTTPSConnection.__init__ allows us to use the original one.
         self.key_file = kwargs.pop('key_file', None)
         self.cert_file = kwargs.pop('cert_file', None)
+        HTTPConnection.__init__(self, *args, **kwargs)
+        ReplayConnectionHelper.__init__(self)
 
 
 class ReplayHTTPResponse(object):
