@@ -269,7 +269,12 @@ class ReplayHTTPResponse(object):
                 replay_response['body_text'] = body
             except UnicodeDecodeError:
                 # Store body as quoted printable.
-                replay_response['body_quoted_printable'] = quopri.encodestring(body)
+                # Remove unneccessary =\n pairs which make searching hard.
+                # These exist for line-wrapping in email, which is entirely
+                # pointless here.
+                body_quoted_printable = quopri.encodestring(body)
+                body_quoted_printable = body_quoted_printable.replace('=\n', '')
+                replay_response['body_quoted_printable'] = body_quoted_printable
 
         else:
             replay_response['body'] = body.encode('base64')
