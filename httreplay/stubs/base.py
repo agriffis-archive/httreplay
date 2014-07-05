@@ -121,7 +121,7 @@ class ReplayConnectionHelper:
                 self.__request['body_base64'] = body_key.encode('base64')
 
         # endheaders() will eventually call send()
-        logstr = '%(method)s %(host)s:%(port)s/%(url)s' % self.__request
+        logstr = '%(method)s %(host)s:%(port)s%(url)s' % self.__request
         if self.__request in self.__recording:
             logger.debug("ReplayConnectionHelper found %s", logstr)
             self.__fake_send = True
