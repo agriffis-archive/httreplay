@@ -169,7 +169,7 @@ class ReplayConnectionHelper:
             replay_response = dict(
                 status=dict(code=418, message="I'm a teapot"),
                 headers={},
-                body_quoted_printable='Blocked by allow_network=3DFalse')
+                body_text='Blocked by allow_network=False')
 
         return ReplayHTTPResponse(replay_response, method=self.__request['method'])
 
@@ -215,9 +215,18 @@ class ReplayHTTPResponse(object):
         self.reason = replay_response['status']['message']
         self.status = replay_response['status']['code']
         self.version = None
-        if 'body_quoted_printable' in replay_response:
+
+        if 'body_text' in replay_response:
+            # JSON decoder returns unicode, not str, so this needs to be
+            # encoded to properly reproduce content off the wire.
+            self._content = replay_response['body_text'].encode('utf8')
+        elif 'body_quoted_printable' in replay_response:
+            # quopri.decodestring returns str, which is correct for content off
+            # the wire.
             self._content = quopri.decodestring(replay_response['body_quoted_printable'])
         else:
+            # .decode('base64') returns str, which is correct for content off
+            # the wire.
             self._content = replay_response['body'].decode('base64')
         self.fp = StringIO(self._content)
 
@@ -241,10 +250,11 @@ class ReplayHTTPResponse(object):
         replay_response = {}
         body = response.read()  # undecoded byte string
 
-        # Add body to replay_response, either as quoted printable for
-        # text responses or base64 for binary responses.
+        # Add body to replay_response. Try to use simple text, falling back to
+        # quoted printable or base64 as required for binary responses.
         if response.getheader('content-type', '') \
                 .startswith(cls.__text_content_types):
+
             if response.getheader('content-encoding') in ['gzip', 'deflate']:
                 # http://stackoverflow.com/questions/2695152
                 body = zlib.decompress(body, 16 + zlib.MAX_WBITS)
@@ -252,7 +262,15 @@ class ReplayHTTPResponse(object):
                 # decompression changes the length
                 if 'content-length' in response.msg:
                     response.msg['content-length'] = str(len(body))
-            replay_response['body_quoted_printable'] = quopri.encodestring(body)
+
+            try:
+                # Store body directly as text if it will decode properly.
+                body.decode('utf8')
+                replay_response['body_text'] = body
+            except UnicodeDecodeError:
+                # Store body as quoted printable.
+                replay_response['body_quoted_printable'] = quopri.encodestring(body)
+
         else:
             replay_response['body'] = body.encode('base64')
 
