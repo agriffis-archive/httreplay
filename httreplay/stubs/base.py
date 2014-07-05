@@ -119,6 +119,9 @@ class ReplayConnectionHelper:
                 self.__request['body'] = body_key.decode('utf8')
             except UnicodeDecodeError:
                 self.__request['body_base64'] = body_key.encode('base64')
+        else:
+            # Probably unicode or None.
+            self.__request['body'] = body_key
 
         # endheaders() will eventually call send()
         logstr = '%(method)s %(host)s:%(port)s%(url)s' % self.__request
